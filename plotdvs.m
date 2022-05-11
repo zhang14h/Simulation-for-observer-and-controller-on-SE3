@@ -1,0 +1,20 @@
+% observabilitytestc;
+% visualwithoutobsdamping;
+% visualwithobs;
+
+figure;
+p1 = plot(dv1,'-r'); m1 = "Original Observer";
+hold on;
+p2 = plot(dv2,'-.g'); m2 = "high gain damping";
+hold on;
+p3 = plot(dv3,'--b'); m3 = "gamma = 2";
+hold on;
+% p4 = plot(dv4,'-k'); m4 = "gamma = 3";
+hold on;
+% p5 = plot(dv5,'-.m'); m5 = "gamma = 4";
+legend([p1,p2,p3],[m1,m2,m3]);
+title('no noise and measurement error ');
+xlabel('Time');
+ylabel('Estimation error');
+figure;
+plot (robs,'-r','linewidth',1);
