@@ -86,15 +86,11 @@
 % 
 % y(:,1) = [2;2;2; 1]; y(:,2) = [1; 1; 1; 0]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;0]; y(:,5) = [-1;3;1;1]; y(:,6) = [2;2;3;0];
 % y(:,7) = [2; 1; 2; 1]; y(:,8) = [1; 0; 1; 0];
-
-% newobserver;
-% qdesign;
-% figure()
-% Q = 0.1*[3 1 2 1; 1 1 1 1; 2 1 1 1; 1 1 1 1];
-% Q=  Q*Q.'+1.5*eye(4);
+% Q = 0.01*[3 1 2 1; 1 1 1 1; 2 1 1 1; 1 1 1 1];
+% Q=  Q*Q.'+eye(4);
 Q = 0.001 * [1 2 3 1; 4 3 1 1; 0 1 0 1; 1 2 7 3];
-Q=  Q+1.5*eye(4);
-for i = 1:iter
+Q=  Q+eye(4);
+for i = 1:iter;
    
    
 %     dV(i) = real(visiondistance(R_t(:,:,i),R_s(:,:,i),P_t,P_s));
@@ -119,30 +115,30 @@ for i = 1:iter
     
 
 % end of so3 estimation;    
-    se3_t(:,:,i) =  [w_hat_t(:,:,i)+delta_hat_t(:,:,i) v_t(:,1,i)+v_delta(:,1,i);
+     se3_t(:,:,i) =  [w_hat_t(:,:,i)+delta_hat_t(:,:,i) v_t(:,1,i)+v_delta(:,1,i);
                   [0,0,0]        0   ];
     
     SE3_t(:,:,i+1) = SE3_t(:,:,i)*expm(se3_t(:,:,i));
-    
     TRt(:,:,i) = [SE3_t(1,1,i) SE3_t(1,2,i) SE3_t(1,3,i);
                  SE3_t(2,1,i) SE3_t(2,2,i) SE3_t(2,3,i);
                  SE3_t(3,1,i) SE3_t(3,2,i) SE3_t(3,3,i)];
              
-    TPt(:,i) = [SE3_t(1,4,i) SE3_t(2,4,i) SE3_t(3,4,i)]; 
+    TPt(:,i) = [SE3_t(1,4,i) SE3_t(2,4,i) SE3_t(3,4,i)];
     
     TRs(:,:,i) = [SE3_s(1,1,i) SE3_s(1,2,i) SE3_s(1,3,i);
                  SE3_s(2,1,i) SE3_s(2,2,i) SE3_s(2,3,i);
                  SE3_s(3,1,i) SE3_s(3,2,i) SE3_s(3,3,i)];
              
     TPs(:,i) = [SE3_s(1,4,i) SE3_s(2,4,i) SE3_s(3,4,i)];  
+%   
     
-    
+   
     error5(:,:,i) =  SE3_t(:,:,i)*inv(SE3_s(:,:,i));
-    dv3(i) = norm(error5(:,:,i)-eye(4),'fro');
+    dv2(i) = norm(error5(:,:,i)-eye(4),'fro');
     omega1(:,:,i)=zeros(4,4);
     omega2(:,:,i)=zeros(4,4);
     for p = 1:14
-        omega1(:,:,i) = omega1(:,:,i)+0.01*(-error5(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p));
+       omega1(:,:,i) = omega1(:,:,i)+0.01*(-error5(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p));
       omega2(:,:,i) = omega2(:,:,i) +0.006*(-error5(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p))/norm(y(:,p),2);
     end;
     
@@ -152,8 +148,10 @@ for i = 1:iter
     
     
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
+%     se3_s(:,:,i) =  [w_hat_t(:,:,i) v_t(:,1,i);
+%                   [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)-inv(SE3_s(:,:,i))*projection (0.5*[1 0 0 0;0 1 0 0;0 0 1 0; 0 0 0 1]*1/4*((omega2(:,:,i) - omega2(:,:,i).')))*SE3_s(:,:,i); 
     se3_s(:,:,i) =  [w_hat_t(:,:,i) v_t(:,1,i);
-                  [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)-inv(SE3_s(:,:,i))*projection (1/4*(Q*omega2(:,:,i) - omega2(:,:,i).'*Q))*SE3_s(:,:,i); 
+                  [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)-inv(SE3_s(:,:,i))*projection (1/4*(Q*omega2(:,:,i) - omega2(:,:,i).'*Q.'))*SE3_s(:,:,i); 
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s(:,:,i));
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
@@ -163,79 +161,60 @@ for i = 1:iter
     
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(1,3,i)],'r');
 %     hold on 
-%     xlim([-50 50]);
-%     ylim([-50,50]);
-%     zlim([-50,50]);
+%     xlim([-20 20]);
+%     ylim([-20,20]);
+%     zlim([-20,20]);
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(2,3,i)],'g');
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(3,3,i)],'b');
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(1,3,i)],'color',[10 10 10]/255);
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(2,3,i)],'color',[100 100 100]/255);
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(3,3,i)],'color',[200 200 200]/255);
+%     plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5)
 %     hold off  
-%     pause(0.01)   
+%     pause(0.01)
 %     
 end 
-k3 = 0;
+k2 = 0;
 for i=1:iter
-k3 = k3+(dv3(i));
+k2 = k2+(dv2(i));
 end;
+
 figure()
  
- plot (dv3);
+  plot (dv2);
   title('observer and proposed controlled output');
   grid
-figure() 
   
-  
-  
-  
- 
-  
-  p1 = plot (dv1,'-r','linewidth',1); m1 = "observer in (8)";
 
-  hold on;
-  p2 = plot (dv2,'--g','linewidth',1); m2 = "observer with k = 0.08";
-  
-  hold on;
-  p3 = plot (dv3,'.b','linewidth',1); m3 = "observer with k = 1";
-  
-   legend ([p1,p2,p3],[m1,m2,m3]); 
-% legend ([p1,p3],[m1,m3]);
-%  title('Performance of the proposed observerscwith k = 1.5 and k =3');
- title('Performance of the observer in (8) and the proposed observers');
- grid
-  xlabel('Time')
-  ylabel('Estimation error')
 % figure()
-%   subplot(3,1,1)
-%   plot (dv1);
-%   title('Observer proposed in equation (10)');
-%   grid
-%   xlabel('Time')
-%   ylabel('Estimation error')
-% %   txt = {'dV = ' ,k1};
-% %   text(iter/2,10,txt);
-% %   subplot(3,1,2)
-% %   plot (dv2);
-% %   xlabel('Time')
-% %   ylabel('Estimation error')
-% %   grid
-% % %   txt = {'dV = ' ,k2};
-% % %   text(iter/2,10,txt);
-% %   title('Our proposed observer k_0=1.5');
-%   subplot(3,1,2)
-%   plot (dv2);
-%   xlabel('Time')
-%   ylabel('Estimation error')
-%   grid
-% %   txt = {'dV = ' ,k2};
-% %   text(iter/2,10,txt);
-%   title('Our proposed observer k_0=1.5');
+% subplot(3,1,1);
+%   plot(roll_t1/pi*180,'--')
+%   hold on;
+%   plot(roll_s1/pi*180)
+%   ylim('auto')
+%   subplot(3,1,2);
+%   plot(roll_t2/pi*180,'--')
+%   hold on;
+%   plot(roll_s2/pi*180)
+%   ylim('auto')
 %   subplot(3,1,3)
-%   plot (dv3);
-%   xlabel('Time')
-%   ylabel('Estimation error')
-%   grid
-% %   txt = {'dV = ' ,k2};
-% %   text(iter/2,10,txt);
-%   title('Our proposed observer k_0=1.5');
+%   plot(roll_t3/pi*180,'--');
+%   hold on;
+%   plot(roll_s3/pi*180);
+%   ylim('auto')
+% figure()
+%   subplot(3,1,1);
+% plot(TPs(1,:),'--');
+% hold on 
+% plot(TPt(1,:));
+% ylim('auto')
+% subplot(3,1,2);
+% plot(TPs(2,:),'--');
+% hold on 
+% plot(TPt(2,:));
+% ylim('auto')
+% subplot(3,1,3);
+% plot(TPs(3,:),'--');
+% hold on 
+% plot(TPt(3,:));
+% ylim('auto')

@@ -5,7 +5,9 @@ SE3_s(:,:,1) = [R_s(:,:,1) P_s;
 SE3_t(:,:,1) = [R_t(:,:,1) P_t;
                 [0,0,0]            1     ];
 
-figure
+P = 0.01*[1 2 3 1; 4 3 1 1; 1 1 1 1; 1 2 4 3];
+P=  P+1*eye(4);
+% figure
 for i = 1:iter;
      TRt(:,:,i) = [SE3_t(1,1,i) SE3_t(1,2,i) SE3_t(1,3,i);
                  SE3_t(2,1,i) SE3_t(2,2,i) SE3_t(2,3,i);
@@ -27,12 +29,14 @@ for i = 1:iter;
     omega3(:,:,i)=zeros(4,4);
     
     omega(:,:,i) =   1*projection(1/4*((error4(:,:,i) - error4(:,:,i).')));
-    omega4(:,:,i) =   0.5*projection(1/4*((inv(error4(:,:,i)) - eye(4))-(inv(error4(:,:,i)) - eye(4)).'));
+%     omega4(:,:,i) =   0.5*inv(SE3_s(:,:,i))*projection(1/4*((error4(:,:,i) - eye(4))-(error4(:,:,i) - eye(4)).'))*SE3_s(:,:,i);
+     omega4(:,:,i) =   inv(T)*projection(1/4*(P*(error4(:,:,i) - eye(4))-(error4(:,:,i) - eye(4)).'*P.'))*T;
+    
       
 %     SE3_t(:,:,70) =[1 0 0 0;0 1 0 0;0 0 1 0;0 0 0 0];
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
 %     Ui(:,:,i) =  -inv(SE3_s(:,:,i))*(omega(:,:,i))*SE3_s(:,:,i);
-    Ui(:,:,i) =  -inv(T)*(omega(:,:,i))*(T)+omega4(:,:,i);
+    Ui(:,:,i) =  -inv(T)*(omega(:,:,i))*(T)-omega4(:,:,i);
     Ut(:,:,i) =  Ui(:,:,i)+[delta_hat_t(:,:,i) v_delta(:,1,i);[0,0,0]    0 ];
 %     U(:,:,i) =  -(omega(:,:,i))-[delta_hat_t(:,:,i) v_delta(:,1,i);[0,0,0]    0 ]-omega4(:,:,i);
     SE3_t(:,:,i+1) = SE3_t(:,:,i)*expm(Ut(:,:,i));
@@ -44,29 +48,29 @@ for i = 1:iter;
     end;
     omega_t(:,:,i) =   projection(1/4*((omega2(:,:,i) - omega2(:,:,i).')));
 %     se3_s = Ui(:,:,i)-inv(SE3_s(:,:,i))*omega_t(:,:,i)*SE3_s(:,:,i)-projection (1.1*[1 0 0 0;0 1 0 0;0 0 1 0; 0 0 0 1]*1/4*((omega3(:,:,i) - omega3(:,:,i).')));
-    se3_s = Ui(:,:,i)-inv(SE3_s(:,:,i))*omega_t(:,:,i)*SE3_s(:,:,i);
+    se3_s = Ui(:,:,i)-inv(SE3_s(:,:,i))*omega_t(:,:,i)*SE3_s(:,:,i); 
   
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s);
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
-    dv4(i) = real(visiondistance(R,TRs(:,:,i),P.',TPs(:,i)));
-    dv5(i) = real(visiondistance(R,TRt(:,:,i),P.',TPt(:,i)));
-    dv6(i) = real(visiondistance(TRs(:,:,i),TRt(:,:,i),TPs(:,i),TPt(:,i)));
-%     dv4(i) = norm(error4(:,:,i)-eye(4),'fro');
-%     dv5(i) = norm(error6(:,:,i)-eye(4),'fro');
-%     dv6(i) = norm(error7(:,:,i)-eye(4),'fro');
-    plot3([TPs(1,i),TPs(1,i)+5*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(1,3,i)],'--r');
-    hold on 
-    xlim([-20 20]);
-    ylim([-20,20]);
-    zlim([-20,20]);
-    plot3([TPs(1,i),TPs(1,i)+5*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(2,3,i)],'--g');
-    plot3([TPs(1,i),TPs(1,i)+5*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(3,3,i)],'--b');
-    plot3([TPt(1,i),TPt(1,i)+5*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(1,3,i)],'color',[10 10 10]/255);
-    plot3([TPt(1,i),TPt(1,i)+5*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(2,3,i)],'color',[100 100 100]/255);
-    plot3([TPt(1,i),TPs(1,i)+5*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(3,3,i)],'color',[200 200 200]/255);
-    hold off  
-    pause(0.01)
+%     dv4(i) = real(visiondistance(R,TRs(:,:,i),P.',TPs(:,i)));
+%     dv5(i) = real(visiondistance(R,TRt(:,:,i),P.',TPt(:,i)));
+%     dv6(i) = real(visiondistance(TRs(:,:,i),TRt(:,:,i),TPs(:,i),TPt(:,i)));
+    dv4(i) = norm(error4(:,:,i)-eye(4),'fro');
+    dv5(i) = norm(error6(:,:,i)-eye(4),'fro');
+    dv6(i) = norm(error7(:,:,i)-eye(4),'fro');
+%     plot3([TPs(1,i),TPs(1,i)+5*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(1,3,i)],'--r');
+%     hold on 
+%     xlim([-20 20]);
+%     ylim([-20,20]);
+%     zlim([-20,20]);
+%     plot3([TPs(1,i),TPs(1,i)+5*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(2,3,i)],'--g');
+%     plot3([TPs(1,i),TPs(1,i)+5*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(3,3,i)],'--b');
+%     plot3([TPt(1,i),TPt(1,i)+5*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(1,3,i)],'color',[10 10 10]/255);
+%     plot3([TPt(1,i),TPt(1,i)+5*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(2,3,i)],'color',[100 100 100]/255);
+%     plot3([TPt(1,i),TPt(1,i)+5*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(3,3,i)],'color',[200 200 200]/255);
+%     hold off  
+%     pause(0.01)
 
 end;
 k4 = 0;

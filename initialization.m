@@ -2,7 +2,7 @@ clc
 clear
 close all
 
-iter = 1000;
+iter = 10;
 alpha = 0.004;
 snr = 0;
 d = 0;

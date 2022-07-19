@@ -2,20 +2,26 @@ clc
 clear
 close all
 a0 =1;
-iter = 10000;
+iter = 2000;
 for i = 1:iter
-  w1_t(i) =1*pi/500;
-  w2_t(i) =2*pi/500;
-  w3_t(i) =3*pi/500;
-  v_t(:,1,i) = 0.1*[-2*2*pi/iter*cos(2*i*pi/iter) 2*2*pi/iter*sin(2*i*pi/iter)  1*2*pi/iter*sin(2*i*pi/iter)].';
-  v_delta(:,1,i) = 0*[1*cos(i/200),1*cos(i/200),0.5*cos(i/200)] ;
-  v_o(:,1,i) = 0*[1*cos(i/3),1*sin(i/3),1*cos(i/3)] ;
-  delta1_t(i) = 0.00*pi/200;
-  delta2_t(i) = 0.0*pi/200;
-  delta3_t(i) = 0.0*pi/200;
-  mo1_t(i) = 0*pi/90*sin(i/2);
-  mo2_t(i) = 0*pi/90*sin(i/4);
-  mo3_t(i) = 0*pi/90*sin(3*i);
+    if rem(i,100) <=40;
+       q(i) = 0.05*pi/5250;
+    else
+       q(i) = 0;
+    end;
+  w1_t(i) =0;
+  w2_t(i) = 2*pi/500;
+  w3_t(i) = 2*pi/500;
+  v_t(:,1,i) = 0.3*[1*pi/2000*cos(2*i*pi/2000) 1*pi/iter*sin(2*i*pi/2000)  1*pi/iter*sin(2*i*pi/2000)].';
+%   v_t(:,1,i) = 0.3*[1*pi*5/2000 1*pi*5/2000  1*pi*5/2000].';
+  v_delta(:,1,i) = 11*0.01*[1*cos(i/2000),1*sin(i/3000+pi/6),0.5*cos(i/1000)*sin(i/7000+pi/7)] ;
+
+  
+  delta1_t(i) = 5*0.01*q(i);
+  delta2_t(i) = 5*0.01*pi/6000;
+  delta3_t(i) = 5*0.03*pi/8000;
+  
+  
   if w1_t(i) == 0 & w2_t(i) == 0 & w3_t(i) ==0;
      
      w_t(:,1,i) = [w1_t(i) w2_t(i) w3_t(i)].';
@@ -26,7 +32,7 @@ for i = 1:iter
    
      w_t(:,1,i) = [w1_t(i) w2_t(i) w3_t(i)].'; %body-frame angular velocisy
      
-     w_hat_t(:,:,i) = [0 w_t(1,1,i) w_t(2,1,i);-w_t(1,1,i) 0 w_t(3,1,i);-w_t(2,1,i) -w_t(3,1,i) 0]; %lefs-righs invarians coefficiens,so3;
+     w_hat_t(:,:,i) = [0 -w_t(3,1,i) w_t(2,1,i);w_t(3,1,i) 0 -w_t(1,1,i);-w_t(2,1,i) w_t(1,1,i) 0]; %lefs-righs invarians coefficiens,so3;
      exp_t(:,:,i) = expm(w_hat_t(:,:,i));
   end;
   if delta1_t(i) == 0 & delta2_t(i) == 0 & delta3_t(i) ==0;
@@ -42,20 +48,6 @@ for i = 1:iter
      delta_hat_t(:,:,i) = [0 -delta_t(3,1,i) delta_t(2,1,i);delta_t(3,1,i) 0 -delta_t(1,1,i);-delta_t(2,1,i) delta_t(1,1,i) 0]; %lefs-righs invarians coefficiens,so3;
      exp_deltat(:,:,i) = expm(delta_hat_t(:,:,i));
   end;
-  if mo1_t(i) == 0 & mo2_t(i) == 0 & mo3_t(i) ==0;
-     
-     mo_t(:,1,i) = [mo1_t(i) mo2_t(i) mo3_t(i)].';
-     mo_hat_t(:,:,i) = hatoperate ([mo1_t(i) mo2_t(i) mo3_t(i)].'); %lefs-righs invarians coefficiens,so3;
-     exp_mot(:,:,i) = [1 0 0; 0 1 0;0 0 1];
-  else
-   
-   
-     mo_t(:,1,i) = [mo1_t(i) mo2_t(i) mo3_t(i)].'; %body-frame angular velocisy
-     
-     mo_hat_t(:,:,i) = [0 -mo_t(3,1,i) mo_t(2,1,i);mo_t(3,1,i) 0 -mo_t(1,1,i);-mo_t(2,1,i) mo_t(1,1,i) 0]; %lefs-righs invarians coefficiens,so3;
-     exp_mot(:,:,i) = expm(mo_hat_t(:,:,i));
-  end;
-     SE3_mo(:,:,i) =expm([ mo_hat_t(:,:,i) v_o(:,1,i) ; [ 0 0 0] 0]);
 end;
 
 fei_t= 0;
@@ -63,7 +55,7 @@ theta_t= 0.3;
 miu_t= 0.2;
 % fei_t = 0;
 % theta_t = pi;
-% miu_t = pi/4;
+% miu_t = pi;
 rpy = [fei_t;
        theta_t;
        miu_t];
@@ -71,9 +63,9 @@ rpy = [fei_t;
 R_t(:,:,1) = rotation(fei_t,theta_t,miu_t); %SO3 
 
 
-px_t = 2;
-py_t = 1;
-pz_t = 3;
+px_t = 0.1;
+py_t = 0.2;
+pz_t = 0.5;
 P_t= [px_t;
       py_t;
       pz_t];
@@ -95,9 +87,9 @@ R_s(:,:,1) = rotation(fei_s,theta_s,miu_s); %SO3
 %               -R_t(2,1,1) -R_t(2,2,1) -R_t(2,3,1)
 %               -R_t(3,1,1) -R_t(3,2,1) -R_t(3,3,1)];
 
-px_s = 0;
-py_s = 0;
-pz_s = 0;
+px_s =0;
+py_s =0;
+pz_s =0;
 P_s= [px_s;
        py_s;
        pz_s];
@@ -109,9 +101,9 @@ SE3_s(:,:,1) = [R_s(:,:,1) P_s;
 
 
 
-% y(:,1) = [2;2;2;1]; y(:,2) = [4; 1; 1; 1]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;1]; y(:,5) = [-1;3;1;1]; y(:,6) = [2;2;3;1]; 
-% y(:,7) = [2; 1; 2; 1]; y(:,8) = [3;4;5;1] ; y(:,9) = [ 5;3;1;1] ; y(:,10) = [7;8;9;1]; y(:,11) = [2;5;7;1]; y(:,12) = [3;6;8;1];
-% y(:,13) = [1;5;9;1]; y(:,14) = [3;7;8;1];
+y(:,1) = [2;2;2;1]; y(:,2) = [4; 1; 1; 1]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;1]; y(:,5) = [-1;3;1;1]; y(:,6) = [2;2;3;1]; 
+y(:,7) = [2; 1; 2; 1]; y(:,8) = [3;4;5;1] ; y(:,9) = [ 5;3;1;1] ; y(:,10) = [7;8;9;1]; y(:,11) = [2;5;7;1]; y(:,12) = [3;6;8;1];
+y(:,13) = [1;5;9;1]; y(:,14) = [3;7;8;1];
 
 % y(:,1) = [2;2;2;1]; y(:,2) = [4;4;4;1]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;1]; y(:,5) = [-1;3;1;1]; y(:,6) = [2;2;3;1]; 
 % y(:,7) = [2; 1; 2; 1]; y(:,8) = [3;4;5;1] ; y(:,9) = [ 5;3;1;1] ; y(:,10) = [7;8;9;1]; y(:,11) = [2;5;7;1]; y(:,12) = [3;6;8;1];
@@ -135,7 +127,7 @@ SE3_s(:,:,1) = [R_s(:,:,1) P_s;
 % y(:,1) = [1;2;3;1];  y(:,2) = [5;4;1;1]; y(:,3) = [1.3;2.6;3.9;1]; y(:,4) = [2.6;5.2;7.8;1];
 % y(:,1) = [0;0;1;1]; y(:,2) = [0;0;2;1]; y(:,3) = [0;0;3;1]; y(:,4) = [0;0;4;1]; y(:,5) = [0;0;-1;1]; y(:,6) = [0;0;-2;1]; y(:,7) = [0;0;-3;1]; 
 
- y(:,1) = [0;1;0;1]; y(:,2) = [0;2;0;1]; y(:,3) = [0;-1;0;1]; y(:,4) = [0;3;0;1];
+%  y(:,1) = [0;1;0;1]; y(:,2) = [0;2;0;1]; y(:,3) = [0;-1;0;1]; y(:,4) = [0;3;0;1];
 % y(:,5) = [0;4;1;1]; y(:,6) = [0;4;2;1]; y(:,7) = [0;4;3;1]; 
  
 % y(:,1) = [1;1;1;1]; y(:,2) = [1;1;1;1]; y(:,3) = [3;2;1;1]; y(:,4)= [2;1;3;1]; y(:,5)=[1;3;2;1] ;
@@ -162,27 +154,22 @@ for i = 1:iter;
                  SE3_t(3,1,i) SE3_t(3,2,i) SE3_t(3,3,i)];
              
     TPt(:,i) = [SE3_t(1,4,i) SE3_t(2,4,i) SE3_t(3,4,i)];
-    SE3_tm(:,:,i) = SE3_t(:,:,i)*SE3_mo(:,:,i);
     
-    TRtm(:,:,i) = [SE3_tm(1,1,i) SE3_tm(1,2,i) SE3_tm(1,3,i);
-                 SE3_tm(2,1,i) SE3_tm(2,2,i) SE3_tm(2,3,i);
-                 SE3_tm(3,1,i) SE3_tm(3,2,i) SE3_tm(3,3,i)];
-             
-    TPtm(:,i) = [SE3_tm(1,4,i) SE3_tm(2,4,i) SE3_tm(3,4,i)];
     TRs(:,:,i) = [SE3_s(1,1,i) SE3_s(1,2,i) SE3_s(1,3,i);
                  SE3_s(2,1,i) SE3_s(2,2,i) SE3_s(2,3,i);
                  SE3_s(3,1,i) SE3_s(3,2,i) SE3_s(3,3,i)];
              
     TPs(:,i) = [SE3_s(1,4,i) SE3_s(2,4,i) SE3_s(3,4,i)];  
 %   
-    error4(:,:,i) =  SE3_tm(:,:,i)*inv(SE3_s(:,:,i));
+    
+    error5(:,:,i) =  SE3_t(:,:,i)*inv(SE3_s(:,:,i));
 %     dv1(i) = real(visiondistance(TRt(:,:,i),TRs(:,:,i),TPt(:,i),TPs(:,i)));
-    dv1(i) = norm(error4(:,:,i)-eye(4),'fro');
+    dv1(i) = norm(error5(:,:,i)-eye(4),'fro');
     omega1(:,:,i)=zeros(4,4);
     deltay(:,:,i) = zeros(4,14);
-    for p = 1:lengthy
+    for p = 1:14
        deltay(:,p,i) = [0*cos(i*p/2) 0*sin(i*p/5) 0*sin(i*p/4) 0].';   
-       omega1(:,:,i) = omega1(:,:,i)+0.01*(-error4(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p));
+       omega1(:,:,i) = omega1(:,:,i)+0.01*(-error5(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p));
        
     end;
 %     A = w_t(:,1,i)+0.04*rand(1);
@@ -191,8 +178,8 @@ for i = 1:iter;
     
     
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
-    se3_s(:,:,i) =  ([w_hat_t(:,:,i) v_t(:,1,i);
-                  [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)); 
+    se3_s(:,:,i) =  [w_hat_t(:,:,i) v_t(:,1,i);
+                  [0,0,0]        0   ]-1*inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i); 
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s(:,:,i));
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
@@ -212,7 +199,7 @@ for i = 1:iter;
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(3,3,i)],'color',[200 200 200]/255);
 %     plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5)
 %     hold off  
-%     pause(0.05)
+%     pause(0.01)
     
 end 
 k1 = 0;

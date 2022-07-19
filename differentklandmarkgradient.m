@@ -89,11 +89,9 @@
 
 % newobserver;
 % qdesign;
+% differentklandmark;
+
 % figure()
-% Q = 0.1*[3 1 2 1; 1 1 1 1; 2 1 1 1; 1 1 1 1];
-% Q=  Q*Q.'+1.5*eye(4);
-Q = 0.001 * [1 2 3 1; 4 3 1 1; 0 1 0 1; 1 2 7 3];
-Q=  Q+1.5*eye(4);
 for i = 1:iter
    
    
@@ -138,7 +136,7 @@ for i = 1:iter
     
     
     error5(:,:,i) =  SE3_t(:,:,i)*inv(SE3_s(:,:,i));
-    dv3(i) = norm(error5(:,:,i)-eye(4),'fro');
+    dv4(i) = norm(error5(:,:,i)-eye(4),'fro');
     omega1(:,:,i)=zeros(4,4);
     omega2(:,:,i)=zeros(4,4);
     for p = 1:14
@@ -153,7 +151,7 @@ for i = 1:iter
     
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
     se3_s(:,:,i) =  [w_hat_t(:,:,i) v_t(:,1,i);
-                  [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)-inv(SE3_s(:,:,i))*projection (1/4*(Q*omega2(:,:,i) - omega2(:,:,i).'*Q))*SE3_s(:,:,i); 
+                  [0,0,0]        0   ]-inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i)-inv(SE3_s(:,:,i))*projection(0.1*[1 0 0 0;0 1 0 0;0 0 1 0; 0 0 0 1]*1/4*((omega2(:,:,i) - omega2(:,:,i).')))*SE3_s(:,:,i); 
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s(:,:,i));
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
@@ -163,27 +161,28 @@ for i = 1:iter
     
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(1,3,i)],'r');
 %     hold on 
-%     xlim([-50 50]);
-%     ylim([-50,50]);
-%     zlim([-50,50]);
+%     xlim([-20 20]);
+%     ylim([-20,20]);
+%     zlim([-20,20]);
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(2,3,i)],'g');
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(3,3,i)],'b');
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(1,3,i)],'color',[10 10 10]/255);
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(2,3,i)],'color',[100 100 100]/255);
-%     plot3([TPt(1,i),TPt(1,i)+10*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(3,3,i)],'color',[200 200 200]/255);
+%     plot3([TPt(1,i),TPs(1,i)+10*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(3,3,i)],'color',[200 200 200]/255);
 %     hold off  
-%     pause(0.01)   
+%     pause(0.05)   
 %     
 end 
-k3 = 0;
+k4 = 0;
 for i=1:iter
-k3 = k3+(dv3(i));
+k4 = k4+(dv4(i));
 end;
 figure()
  
- plot (dv3);
+  plot (dv4);
   title('observer and proposed controlled output');
   grid
+
 figure() 
   
   
@@ -194,12 +193,13 @@ figure()
   p1 = plot (dv1,'-r','linewidth',1); m1 = "observer in (8)";
 
   hold on;
-  p2 = plot (dv2,'--g','linewidth',1); m2 = "observer with k = 0.08";
+  p2 = plot (dv2,'--g','linewidth',1); m2 = "observer with k = 1.5";
   
   hold on;
-  p3 = plot (dv3,'.b','linewidth',1); m3 = "observer with k = 1";
-  
-   legend ([p1,p2,p3],[m1,m2,m3]); 
+  p3 = plot (dv3,'.b','linewidth',1); m3 = "observer with k = 3";
+  hold on;
+  p4 = plot (dv4,'-k','linewidth',1); m4 = "observer with gradient";
+   legend ([p1,p2,p3,p4],[m1,m2,m3,m4]); 
 % legend ([p1,p3],[m1,m3]);
 %  title('Performance of the proposed observerscwith k = 1.5 and k =3');
  title('Performance of the observer in (8) and the proposed observers');
