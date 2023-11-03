@@ -1,0 +1,16 @@
+close all;
+kt = 0.5;
+Ra = 8;
+Jm = 0.03;
+Dm = 0.02;
+kb = 0.5;
+num = [250/12/pi ];
+den = [1 100+41/24 100*41/24 0];
+g = tf(num,den);
+numc = [1];
+denc = 1;
+gc = tf(numc,denc);
+margin(g*gc);
+pole(g);
+figure;
+step(gc*g/(1+gc*g));

@@ -1,6 +1,7 @@
 % visualwithoutobs;
-% close (4);
-figure();
+% visualwithobs;
+% close (5);
+figure(7);
 for i = 1:iter
         se3_t(:,:,i) =  [w_hat_t(:,:,i)+delta_hat_t(:,:,i) v_t(:,1,i)+v_delta(:,1,i);
                   [0,0,0]        0   ];
@@ -19,20 +20,20 @@ for i = 1:iter
         TPs(:,i) = [SE_3s(1,4,i) SE_3s(2,4,i) SE_3s(3,4,i)];  
 %         
         error4(:,:,i) =  SE_3t(:,:,i)*inv(SE_3s(:,:,i));
-        dv4(i) =  abs(visiondistance(TRt(:,:,i),TRs(:,:,i),TPt(:,i),TPs(:,i)));
-%         dv4(i) = norm(error4(:,:,i)-eye(4),'fro');
+        dv5(i) =  abs(visiondistance(TRt(:,:,i),TRs(:,:,i),TPt(:,i),TPs(:,i)));
+%         dv5(i) = norm(error4(:,:,i)-eye(4),'fro');
         omega1(:,:,i)=zeros(4,4);
         omega2(:,:,i)=zeros(4,4);
         
-%         sensorshape(SE_3t(:,:,i),focall,focalh,hov,vov,1);
+        sensorshape(SE_3t(:,:,i),focall,focalh,hov,vov,1);
         counter = 0;
         p = 0;
-       
+        obs5(i) = 0; 
         if i >= 400 && i<= 500 
           for j = 1:landmarks
-           cframeps(:,j) =  inv(SE_3s(:,:,i)) *  y(:,j);
-           cframept(:,j) =  inv(SE_3t(:,:,i)) *  y(:,j);
-%            cframept(:,17) = [4;1.5;-1;1];
+            cframeps(:,j) =  inv(SE_3s(:,:,i)) *  y(:,j);
+            cframept(:,j) =  inv(SE_3t(:,:,i)) *  y(:,j);
+%             cframept(:,17) = [4;1.5;-1;1];
 %             cframept(:,50) = [3.5;-2;1;1];
 %             cframept(:,21) = [2;-2;1.5;1];
 %             cframept(:,33) = [3;-1.5;-1;1];
@@ -46,19 +47,17 @@ for i = 1:iter
                     p(counter) = j;
                     dis(j) = sqrt((cframept(1,j)-(focall+focalh)/2)^2+ cframept(2,j)^2+ cframept(3,j)^2+0.01);
                 else 
-                    plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5); %avoid points missing display
-                    dis(j) = 0;
+                    plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5);
+                    dis(j) = 0;%avoid points missing displa
                 end;
              else 
                     plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5);
                     dis(j) = 0;
-                    
              end;
-            
-%            obs4(:,i) = obs4(:,i) + dis(j);
-           end;
-          
-        else
+%             obs5(i) = obs5(i) + dis(j);   
+          end;
+           
+       else
           for j = 1:landmarks
             cframeps(:,j) =  inv(SE_3s(:,:,i)) *  y(:,j);
             cframept(:,j) =  inv(SE_3t(:,:,i)) *  y(:,j);
@@ -71,55 +70,46 @@ for i = 1:iter
                     p(counter) = j;
                     dis(j) = sqrt((cframept(1,j)-(focall+focalh)/2)^2+ cframept(2,j)^2+ cframept(3,j)^2+0.01);
                 else 
-                    plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5); %avoid points missing display
-                    dis(j) = 0;
+                    plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5);
+                    dis(j) = 0;%avoid points missing displa
                 end;
              else 
                     plot3(y(1,j),y(2,j),y(3,j),'o','Color','b','MarkerSize',5);
                     dis(j) = 0;
-%                     
              end;
-            
-%           obs4(:,i) = obs4(:,i) + dis(j);
-          end;
+% %             obs5(i) = obs5(i) + dis(j);  
+           end;
+        
         end;
-         num(i) = counter;
+        obs5(:,i) = counter;
         for k = 1:counter;  
-                    omega1(:,:,i) = omega1(:,:,i)+alpha*(SE_3t(:,:,i)*cframept(:,p(k))-error4(:,:,i)*y(:,p(k)))*transpose(y(:,p(k)));
-                    omega2(:,:,i) = omega2(:,:,i)+0.003*(SE_3t(:,:,i)*cframept(:,p(k))-error4(:,:,i)*y(:,p(k)))*transpose(y(:,p(k)))/norm(y(:,p(k))*y(:,p(k)).',2);
+                    omega1(:,:,i) = omega1(:,:,i)+(0.005+0.02*counter/(5*dis(p(k))))*(SE_3t(:,:,i)*cframept(:,p(k))-error4(:,:,i)*y(:,p(k)))*transpose(y(:,p(k)));
+%                     omega1(:,:,i) = omega1(:,:,i)+(0.005+0.002*dis(p(k)))*(SE_3t(:,:,i)*cframept(:,p(k))-error4(:,:,i)*y(:,p(k)))*transpose(y(:,p(k)));
         end; 
         omega(:,:,i) =   projection(1/4*((omega1(:,:,i) - omega1(:,:,i).')));
+        
     
-    
-%         if counter > 3;
-% %    
-%             se_3s(:,:,i) =  ([w_hat_t(:,:,i) v_t(:,1,i);
-%                   [0,0,0]        0   ]-inv(SE_3s(:,:,i))*omega(:,:,i)*SE_3s(:,:,i));
-%               
-%         else
-%             se_3s(:,:,i) =  ([w_hat_t(:,:,i) v_t(:,1,i);
-%                   [0,0,0]        0   ]);
-%         end;
+%     
         se_3s(:,:,i) =  ([w_hat_t(:,:,i) v_t(:,1,i);
-                  [0,0,0]        0   ]-inv(SE_3s(:,:,i))*omega(:,:,i)*SE_3s(:,:,i))-projection (3*[1 0 0 0;0 1 0 0;0 0 1 0; 0 0 0 1]*1/4*((omega2(:,:,i).' - omega2(:,:,i))));
+                  [0,0,0]        0   ]-inv(SE_3s(:,:,i))*omega(:,:,i)*SE_3s(:,:,i)); 
         SE_3s(:,:,i+1) = SE_3s(:,:,i)*expm(se_3s(:,:,i));
         
-%       sensorshape(SE_3s(:,:,i),focall,focalh,hov,vov,2);
+      sensorshape(SE_3s(:,:,i),focall,focalh,hov,vov,2);
       hold off;
       pause(0.001)
-      
+
         
 end;
+k5 = 0;
+for i=1:iter
+k5 = k5+(dv5(i));
+end;
+display (k5);
 
-L2_2 = std(dv2);
-Linf_2 = max(dv2);
-display (L2_2);
-display (Linf_2);
 
-
-figure();
-% plot (dv1,'-r','linewidth',1);
+figure(8);
+% % plot (dv1,'-r','linewidth',1);
 % hold on;
-plot (dv4,':k','linewidth',1);
+plot (dv5,':k','linewidth',1);
 hold on;
-plot (obs4,'-r','linewidth',1);
+plot (obs5,'-r','linewidth',1);

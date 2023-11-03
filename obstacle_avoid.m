@@ -1,26 +1,27 @@
-clc
-clear
-close all
+% clc
+% clear
+% close all
 a0 =1;
 iter = 2000;
+a_avoid =0.00;
 for i = 1:iter
     if rem(i,100) <=40;
-       q(i) = 0.05*pi/5250;
+       q(i) = 0.00*pi/5250;
     else
        q(i) = 0;
     end;
   w1_t(i) =0;
-  w2_t(i) = 2*pi/500;
-  w3_t(i) = 2*pi/500;
+  w2_t(i) = 0.1*pi/500;
+  w3_t(i) = 0.1*pi/500;
 %   v_t(:,1,i) = 0.3*[1*pi/2000*cos(2*i*pi/2000) 1*pi/iter*sin(2*i*pi/2000)  1*pi/iter*sin(2*i*pi/2000)].';
-  v_t(:,1,i) = 0.3*[1 1 1].';
+  v_t(:,1,i) = 0.01*[1 1 1].';
 %   v_t(:,1,i) = 0.3*[1*pi*5/2000 1*pi*5/2000  1*pi*5/2000].';
-  v_delta(:,1,i) = 11*0.01*[1*cos(i/2000),1*sin(i/3000+pi/6),0.5*cos(i/1000)*sin(i/7000+pi/7)] ;
+  v_delta(:,1,i) = 0*[1*cos(i/2000),1*sin(i/3000+pi/6),0.5*cos(i/1000)*sin(i/7000+pi/7)] ;
 
   
-  delta1_t(i) = 5*0.01*q(i);
-  delta2_t(i) = 5*0.01*pi/6000;
-  delta3_t(i) = 5*0.03*pi/8000;
+  delta1_t(i) = 0*0.01*q(i);
+  delta2_t(i) = 0*0.01*pi/6000;
+  delta3_t(i) = 0*0.03*pi/8000;
   
   
   if w1_t(i) == 0 & w2_t(i) == 0 & w3_t(i) ==0;
@@ -106,6 +107,8 @@ y(:,1) = [2;2;2;1]; y(:,2) = [4; 1; 1; 1]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;
 y(:,7) = [2; 1; 2; 1]; y(:,8) = [3;4;5;1] ; y(:,9) = [ 5;3;1;1] ; y(:,10) = [7;8;9;1]; y(:,11) = [2;5;7;1]; y(:,12) = [3;6;8;1];
 y(:,13) = [1;5;9;1]; y(:,14) = [3;7;8;1];
 
+y_obstacle = [10; 3; 1; 1]
+
 % y(:,1) = [2;2;2;1]; y(:,2) = [4;4;4;1]; y(:,3) = [1; 2;3;1]; y(:,4) = [3;2;1;1]; y(:,5) = [-1;3;1;1]; y(:,6) = [2;2;3;1]; 
 % y(:,7) = [2; 1; 2; 1]; y(:,8) = [3;4;5;1] ; y(:,9) = [ 5;3;1;1] ; y(:,10) = [7;8;9;1]; y(:,11) = [2;5;7;1]; y(:,12) = [3;6;8;1];
 % y(:,13) = [1;5;9;1]; y(:,14) = [3;7;8;1];
@@ -144,11 +147,15 @@ y(:,13) = [1;5;9;1]; y(:,14) = [3;7;8;1];
 
 
 % end of so3 estimation;   
-[rownum,lengthy]=size(y); 
+[rownum,lengthy]=size(y);
 for i = 1:iter;    
     
+    p_obstacle(:,:,i) = inv(SE3_t(:,:,i))*y_obstacle; 
+    omega_avoid(:,:,i) = p_obstacle(:,:,i)*(p_obstacle(:,:,i)-[0;0;0;1]).';
+    U_avoid(:,:,i) = projection(1/4*((omega_avoid(:,:,i) - omega_avoid(:,:,i).')));         
     se3_t(:,:,i) =  [w_hat_t(:,:,i)+delta_hat_t(:,:,i) v_t(:,1,i)+v_delta(:,1,i);
-                  [0,0,0]        0   ];
+                  [0,0,0]        0   ]+a_avoid*U_avoid(:,:,i);
+    
     
     SE3_t(:,:,i+1) = SE3_t(:,:,i)*expm(se3_t(:,:,i));
     TRt(:,:,i) = [SE3_t(1,1,i) SE3_t(1,2,i) SE3_t(1,3,i);
@@ -181,7 +188,7 @@ for i = 1:iter;
     
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
     se3_s(:,:,i) =  [w_hat_t(:,:,i) v_t(:,1,i);
-                  [0,0,0]        0   ]-1*inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i); 
+                  [0,0,0]        0   ]+a_avoid*U_avoid(:,:,i)-1*inv(SE3_s(:,:,i))*omega(:,:,i)*SE3_s(:,:,i); 
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s(:,:,i));
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
@@ -191,15 +198,16 @@ for i = 1:iter;
     
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(1,3,i)],'r');
 %     hold on 
-%     xlim([-20 20]);
-%     ylim([-20,20]);
-%     zlim([-20,20]);
+%     xlim([-40,40]);
+%     ylim([-40,40]);
+%     zlim([-40,40]);
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(2,3,i)],'g');
 %     plot3([TPs(1,i),TPs(1,i)+10*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+10*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+10*TRs(3,3,i)],'b');
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(1,3,i)],'color',[10 10 10]/255);
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(2,3,i)],'color',[100 100 100]/255);
 %     plot3([TPt(1,i),TPt(1,i)+10*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+10*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+10*TRt(3,3,i)],'color',[200 200 200]/255);
-%     plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5)
+% %     plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5)
+%     plot3(y_obstacle(1,:),y_obstacle(2,:),y_obstacle(3,:),'o','Color','r','MarkerSize',5)
 %     hold off  
 %     pause(0.01)
     
@@ -209,23 +217,52 @@ for i=1:iter
 k1 = k1+(dv1(i));
 end;
 display (k1);
-figure()
- plot3([TPs(1,iter),TPs(1,iter)+10*TRs(1,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(1,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(1,3,iter)],'r');
-    hold on 
-    xlim([-20 20]);
-    ylim([-20,20]);
-    zlim([-20,20]);
-    plot3([TPs(1,iter),TPs(1,iter)+10*TRs(2,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(2,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(2,3,iter)],'g');
-    plot3([TPs(1,iter),TPs(1,iter)+10*TRs(3,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(3,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(3,3,iter)],'b');
-    plot3([TPt(1,iter),TPt(1,iter)+10*TRt(1,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(1,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(1,3,iter)],'color',[10 10 10]/255);
-    plot3([TPt(1,iter),TPt(1,iter)+10*TRt(2,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(2,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(2,3,iter)],'color',[100 100 100]/255);
-    plot3([TPt(1,iter),TPt(1,iter)+10*TRt(3,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(3,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(3,3,iter)],'color',[200 200 200]/255);
-    plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5)
-    hold off  
-    pause(0.05)
+% figure()
+%  plot3([TPs(1,1),TPs(1,1)+10*TRs(1,1,1)],[TPs(2,1),TPs(2,1)+10*TRs(1,2,1)],[TPs(3,1),TPs(3,1)+10*TRs(1,3,1)],'r');
+%     hold on 
+%     xlim([-20 20]);
+%     ylim([-20,20]);
+%     zlim([-20,20]);
+%     plot3([TPs(1,1),TPs(1,1)+10*TRs(2,1,1)],[TPs(2,1),TPs(2,1)+10*TRs(2,2,1)],[TPs(3,1),TPs(3,1)+10*TRs(2,3,1)],'g');
+%     plot3([TPs(1,1),TPs(1,1)+10*TRs(3,1,1)],[TPs(2,1),TPs(2,1)+10*TRs(3,2,1)],[TPs(3,1),TPs(3,1)+10*TRs(3,3,1)],'b');
+%     plot3([TPt(1,1),TPt(1,1)+10*TRt(1,1,1)],[TPt(2,1),TPt(2,1)+10*TRt(1,2,1)],[TPt(3,1),TPt(3,1)+10*TRt(1,3,1)],'color',[10 10 10]/255);
+%     plot3([TPt(1,1),TPt(1,1)+10*TRt(2,1,1)],[TPt(2,1),TPt(2,1)+10*TRt(2,2,1)],[TPt(3,1),TPt(3,1)+10*TRt(2,3,1)],'color',[100 100 100]/255);
+%     plot3([TPt(1,1),TPt(1,1)+10*TRt(3,1,1)],[TPt(2,1),TPt(2,1)+10*TRt(3,2,1)],[TPt(3,1),TPt(3,1)+10*TRt(3,3,1)],'color',[200 200 200]/255);
+%     plot3(y_obstacle(1,:),y_obstacle(2,:),y_obstacle(3,:),'o','Color','r','MarkerSize',5)
+%     hold off  
+%     pause(0.05)
+% 
+% figure()
+%  plot3([TPs(1,iter),TPs(1,iter)+10*TRs(1,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(1,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(1,3,iter)],'r');
+%     hold on 
+%     xlim([-20 20]);
+%     ylim([-20,20]);
+%     zlim([-20,20]);
+%     plot3([TPs(1,iter),TPs(1,iter)+10*TRs(2,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(2,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(2,3,iter)],'g');
+%     plot3([TPs(1,iter),TPs(1,iter)+10*TRs(3,1,iter)],[TPs(2,iter),TPs(2,iter)+10*TRs(3,2,iter)],[TPs(3,iter),TPs(3,iter)+10*TRs(3,3,iter)],'b');
+%     plot3([TPt(1,iter),TPt(1,iter)+10*TRt(1,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(1,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(1,3,iter)],'color',[10 10 10]/255);
+%     plot3([TPt(1,iter),TPt(1,iter)+10*TRt(2,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(2,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(2,3,iter)],'color',[100 100 100]/255);
+%     plot3([TPt(1,iter),TPt(1,iter)+10*TRt(3,1,iter)],[TPt(2,iter),TPt(2,iter)+10*TRt(3,2,iter)],[TPt(3,iter),TPt(3,iter)+10*TRt(3,3,iter)],'color',[200 200 200]/255);
+%     plot3(y_obstacle(1,:),y_obstacle(2,:),y_obstacle(3,:),'o','Color','r','MarkerSize',5)
+%     hold off  
+%     pause(0.05)
+    
+figure();
+for i = 1:iter
+    px(i) = SE3_t(1,4,i);
+    py(i) = SE3_t(2,4,i);
+    pz(i) = SE3_t(3,4,i);
+    hpx(i) = SE3_s(1,4,i);
+    hpy(i) = SE3_s(2,4,i);
+    hpz(i) = SE3_s(3,4,i);
+end;    
+ plot3(px,py,pz);  
+ hold on
+ plot3(y_obstacle(1,:),y_obstacle(2,:),y_obstacle(3,:),'o','Color','r','MarkerSize',5)
+   
  
-figure()
- 
-  plot (dv1);
-  title('observer and proposed controlled output');
-  grid
+% figure()
+%  
+%   plot (dv1);
+%   title('observer and proposed controlled output');
+%   grid

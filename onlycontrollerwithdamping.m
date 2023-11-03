@@ -5,8 +5,8 @@ SE3_s(:,:,1) = [R_s(:,:,1) P_s;
 SE3_t(:,:,1) = [R_t(:,:,1) P_t;
                 [0,0,0]            1     ];
 
-P = 0.01*[1 2 3 1; 4 3 1 1; 1 1 1 1; 1 2 4 3];
-P=  P+1*eye(4);
+P =  [3 1 1 1; 2 3 1 1; 3 1 2 1; 1 1 1 1];
+P=  20*eye(4)+ 20*[0 1 0 0 ; 0 0 1 0; 0 0 0 0; 0 0 0 0];
 % figure
 for i = 1:iter;
      TRt(:,:,i) = [SE3_t(1,1,i) SE3_t(1,2,i) SE3_t(1,3,i);
@@ -24,26 +24,35 @@ for i = 1:iter;
     error4(:,:,i) =  SE3_s(:,:,i)*inv(T);
     error6(:,:,i) = SE3_t(:,:,i)*inv(T);
     error7(:,:,i) =  SE3_t(:,:,i)*inv(SE3_s(:,:,i));
+    
+%     dv4(i) = norm(T-SE3_s(:,:,i),'fro');  %T - hatX
+%     dv5(i) = norm(T-SE3_t(:,:,i),'fro');  %T - X
+%     dv6(i) = norm(SE3_s(:,:,i)-SE3_t(:,:,i),'fro');
+    
+    dv4(i) = norm(SE3_s(:,:,i)*inv(T)-eye(4),'fro');  %T - hatX
+    dv5(i) = norm(SE3_t(:,:,i)*inv(T)-eye(4),'fro');  %T - X
+    dv6(i) = norm(SE3_s(:,:,i)*inv(SE3_t(:,:,i))-eye(4),'fro');
+    
     omega1(:,:,i)=zeros(4,4);
     omega2(:,:,i)=zeros(4,4);
     omega3(:,:,i)=zeros(4,4);
     
-    omega(:,:,i) =   1*projection(1/4*((error4(:,:,i) - error4(:,:,i).')));
+    omega(:,:,i) =   4*projection(1/4*((error4(:,:,i) - error4(:,:,i).')));
 %     omega4(:,:,i) =   0.5*inv(SE3_s(:,:,i))*projection(1/4*((error4(:,:,i) - eye(4))-(error4(:,:,i) - eye(4)).'))*SE3_s(:,:,i);
-     omega4(:,:,i) =   inv(T)*projection(1/4*(P*(error4(:,:,i) - eye(4))-(error4(:,:,i) - eye(4)).'*P.'))*T;
+     omega4(:,:,i) =   inv(T)*projection(1/4*(P*error4(:,:,i)-error4(:,:,i).'*P.'))*T;
     
       
 %     SE3_t(:,:,70) =[1 0 0 0;0 1 0 0;0 0 1 0;0 0 0 0];
 %     v_s(:,i) = v_t(:,1,i)+0.1*rand(1)+ 0.3.*(TPt(:,i)+0.03*rand(1)-TPs(:,i));
 %     Ui(:,:,i) =  -inv(SE3_s(:,:,i))*(omega(:,:,i))*SE3_s(:,:,i);
-    Ui(:,:,i) =  -inv(T)*(omega(:,:,i))*(T)-omega4(:,:,i);
+    Ui(:,:,i) =  -0.1*inv(T)*(omega(:,:,i))*(T)-0.1*omega4(:,:,i);
     Ut(:,:,i) =  Ui(:,:,i)+[delta_hat_t(:,:,i) v_delta(:,1,i);[0,0,0]    0 ];
 %     U(:,:,i) =  -(omega(:,:,i))-[delta_hat_t(:,:,i) v_delta(:,1,i);[0,0,0]    0 ]-omega4(:,:,i);
     SE3_t(:,:,i+1) = SE3_t(:,:,i)*expm(Ut(:,:,i));
     error5(:,:,i) =  SE3_t(:,:,i)*inv(SE3_s(:,:,i));
     for p = 1:lengthy
-       
-      omega2(:,:,i) = omega2(:,:,i)+0.01*(-error5(:,:,i)*y(:,p)-SE3_s(:,:,i)*deltay(:,p,i)+y(:,p))*transpose(y(:,p));
+       cframept(:,p) =  inv(SE3_t(:,:,i)) *  [y(1,p) y(2,p) y(3,p) 1].';
+       omega2(:,:,i) = omega2(:,:,i)+0.003*(SE3_s(:,:,i)*(cframept(:,p)+deltay(:,p,i))-[y(1,p) y(2,p) y(3,p) 1].')*transpose([y(1,p) y(2,p) y(3,p) 1].');
        
     end;
     omega_t(:,:,i) =   projection(1/4*((omega2(:,:,i) - omega2(:,:,i).')));
@@ -53,41 +62,45 @@ for i = 1:iter;
     SE3_s(:,:,i+1) = SE3_s(:,:,i)*expm(se3_s);
     [roll_s1(i),roll_s2(i),roll_s3(i)] = derotation(TRs(:,:,i));
     roll_s(:,i) =  [roll_s1(i),roll_s2(i),roll_s3(i)];
-%     dv4(i) = real(visiondistance(R,TRs(:,:,i),P.',TPs(:,i)));
-%     dv5(i) = real(visiondistance(R,TRt(:,:,i),P.',TPt(:,i)));
-%     dv6(i) = real(visiondistance(TRs(:,:,i),TRt(:,:,i),TPs(:,i),TPt(:,i)));
-    dv4(i) = norm(error4(:,:,i)-eye(4),'fro');
-    dv5(i) = norm(error6(:,:,i)-eye(4),'fro');
-    dv6(i) = norm(error7(:,:,i)-eye(4),'fro');
+    
 %     plot3([TPs(1,i),TPs(1,i)+5*TRs(1,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(1,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(1,3,i)],'--r');
 %     hold on 
-%     xlim([-20 20]);
-%     ylim([-20,20]);
-%     zlim([-20,20]);
+%     
 %     plot3([TPs(1,i),TPs(1,i)+5*TRs(2,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(2,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(2,3,i)],'--g');
 %     plot3([TPs(1,i),TPs(1,i)+5*TRs(3,1,i)],[TPs(2,i),TPs(2,i)+5*TRs(3,2,i)],[TPs(3,i),TPs(3,i)+5*TRs(3,3,i)],'--b');
 %     plot3([TPt(1,i),TPt(1,i)+5*TRt(1,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(1,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(1,3,i)],'color',[10 10 10]/255);
 %     plot3([TPt(1,i),TPt(1,i)+5*TRt(2,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(2,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(2,3,i)],'color',[100 100 100]/255);
 %     plot3([TPt(1,i),TPt(1,i)+5*TRt(3,1,i)],[TPt(2,i),TPt(2,i)+5*TRt(3,2,i)],[TPt(3,i),TPt(3,i)+5*TRt(3,3,i)],'color',[200 200 200]/255);
+%     plot3(y(1,:),y(2,:),y(3,:),'o','Color','k','MarkerSize',5);
 %     hold off  
 %     pause(0.01)
 
 end;
-k4 = 0;
-k5 = 0;
-k6 = 0;
-for i=1:iter
-k4 = k4+(dv4(i));
-k5 = k5+(dv5(i));
-k6 = k6+(dv6(i));
-end;
-for i= 1:iter
 
-trdo3(i) = trace(projection(inv(error5(:,:,i))-inv(error5(:,:,i)).')*projection(inv(error5(:,:,i))-inv(error5(:,:,i)).').');
-trdo4(i) = trace(inv(error5(:,:,i)));
-trdo5(i)= trace(projection((inv(error5(:,:,i))*SE3_s(:,:,i)*inv(T))-(inv(error5(:,:,i))*SE3_s(:,:,i)*inv(T)).')*projection((SE3_s(:,:,i)*inv(T)-(SE3_s(:,:,i)*inv(T)).')).');
 
-end
+L2_5 = sqrt(sum(dv5*dv5.')/iter);
+Linf_5 = max(dv5);
+
+L2_6 = sqrt(sum(dv6*dv6.')/iter);
+Linf_6 = max(dv6);
+
+
+
+figure();
+for i = 1:iter
+    px2(i) = SE3_t(1,4,i);
+    py2(i) = SE3_t(2,4,i);
+    pz2(i) = SE3_t(3,4,i);
+    hpx2(i) = SE3_s(1,4,i);
+    hpy2(i) = SE3_s(2,4,i);
+    hpz2(i) = SE3_s(3,4,i);
+end;    
+ plot3(px2,py2,pz2,'b');  
+ hold on
+for j = 1:length(y)
+      plot3(y(1,j),y(2,j),y(3,j),'o','Color','r','MarkerSize',7);
+ end;     
+ plot3(hpx2,hpy2,hpz2,'-.k');
 
 % figure()  
 %   p1 = plot (dv2,'-r','linewidth',1); m1 = " observer in (8)";
